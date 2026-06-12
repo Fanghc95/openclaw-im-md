@@ -1,12 +1,10 @@
 // Feishu plugin module implements send behavior.
-import { resolveMarkdownTableMode } from "openclaw/plugin-sdk/markdown-table-runtime";
 import { parseStrictNonNegativeInteger } from "openclaw/plugin-sdk/number-runtime";
 import {
   isRecord,
   normalizeLowercaseStringOrEmpty,
   normalizeOptionalLowercaseString,
 } from "openclaw/plugin-sdk/string-coerce-runtime";
-import { convertMarkdownTables } from "openclaw/plugin-sdk/text-chunking";
 import type { ClawdbotConfig } from "../runtime-api.js";
 import { resolveFeishuRuntimeAccount } from "./accounts.js";
 import { createFeishuClient } from "./client.js";
@@ -580,19 +578,14 @@ export async function sendMessageFeishu(
     accountId,
   } = params;
   const { client, receiveId, receiveIdType } = resolveFeishuSendTarget({ cfg, to, accountId });
-  const tableMode = resolveMarkdownTableMode({
-    cfg,
-    channel: "feishu",
-  });
 
   // Build message content (with @mention support)
   let rawText = text ?? "";
   if (mentions && mentions.length > 0) {
     rawText = buildMentionedMessage(mentions, rawText);
   }
-  const messageText = convertMarkdownTables(rawText, tableMode);
 
-  const { content, msgType } = buildFeishuPostMessagePayload({ messageText });
+  const { content, msgType } = buildFeishuPostMessagePayload({ messageText: rawText });
 
   const directParams = { receiveId, receiveIdType, content, msgType };
   return sendReplyOrFallbackDirect(client, {
@@ -672,12 +665,7 @@ export async function editMessageFeishu(params: {
     return { messageId, contentType: "interactive" };
   }
 
-  const tableMode = resolveMarkdownTableMode({
-    cfg,
-    channel: "feishu",
-  });
-  const messageText = convertMarkdownTables(text!, tableMode);
-  const payload = buildFeishuPostMessagePayload({ messageText });
+  const payload = buildFeishuPostMessagePayload({ messageText: text! });
   const response = await client.im.message.patch({
     path: { message_id: messageId },
     data: { content: payload.content },
