@@ -61,6 +61,7 @@ import {
   resolveFeishuGroupSenderActivationIngressAccess,
   resolveFeishuReplyPolicy,
 } from "./policy.js";
+import { inlineReplacePostImages } from "./post-image-inline.js";
 import { resolveFeishuReasoningPreviewEnabled } from "./reasoning-preview.js";
 import { createFeishuReplyDispatcher } from "./reply-dispatcher.js";
 import { getFeishuRuntime } from "./runtime.js";
@@ -952,6 +953,19 @@ export async function handleFeishuMessage(params: {
       log,
       accountId: account.accountId,
     });
+    // content_v2 images: rewrite ![alt](image_key) in the body to ![alt](local_path)
+    // pointing at the same FeishuMediaInfo file (downloaded once, not re-presented).
+    if (ctx.contentType === "post") {
+      const keyToPath = new Map<string, string>();
+      for (const media of mediaList) {
+        if (media.sourceKey) {
+          keyToPath.set(media.sourceKey, media.path);
+        }
+      }
+      if (keyToPath.size > 0) {
+        ctx.content = inlineReplacePostImages(ctx.content, keyToPath);
+      }
+    }
     // Skip messages with no text content and no media attachments. Feishu can
     // deliver empty-text events (e.g. `{"text":""}`) when a user sends a blank
     // message or when media parsing produces an empty string. Writing a blank
