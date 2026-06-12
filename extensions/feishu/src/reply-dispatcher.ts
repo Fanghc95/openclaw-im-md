@@ -28,11 +28,6 @@ import { FeishuStreamingSession, mergeStreamingText } from "./streaming-card.js"
 import { resolveReceiveIdType } from "./targets.js";
 import { addTypingIndicator, removeTypingIndicator, type TypingIndicatorState } from "./typing.js";
 
-/** Detect if text contains markdown elements that benefit from card rendering */
-function shouldUseCard(text: string): boolean {
-  return /```[\s\S]*?```/.test(text) || /\|.+\|[\r\n]+\|[-:| ]+\|/.test(text);
-}
-
 /** Maximum age (ms) for a message to receive a typing indicator reaction.
  * Messages older than this are likely replays after context compaction (#30418). */
 const TYPING_INDICATOR_MAX_AGE_MS = 2 * 60_000;
@@ -638,8 +633,7 @@ export function createFeishuReplyDispatcher(params: CreateFeishuReplyDispatcherP
         const useStaticCard =
           hasText &&
           (renderMode === "card" ||
-            (info?.kind === "block" && coreBlockStreamingEnabled && renderMode !== "raw") ||
-            (renderMode === "auto" && shouldUseCard(text)));
+            (info?.kind === "block" && coreBlockStreamingEnabled && renderMode !== "raw"));
         const useStreamingCard =
           hasText &&
           streamingEnabled &&
